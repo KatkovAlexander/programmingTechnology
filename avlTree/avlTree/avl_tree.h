@@ -47,6 +47,7 @@ class avl_tree
         {}
                 
         Iterator& operator=(const Iterator& rhs){
+            
             _node = rhs._node;
             return *this;
         }
@@ -240,22 +241,18 @@ public:
     
     value_type& operator[](const key_type& key)
     {
-        auto res = find(key);
-        if (res == end()){
-            res = insert(key, value_type());
-        }
+        auto res = insert(key, value_type());
         return res.value();
     }
     
-    value_type& operator[](key_type&& key) {
-        Iterator res = find(std::move(key));
-        if (res == end()){
-            res = insert(std::move(key), value_type());
-        }
+    value_type& operator[](key_type&& key)
+    {
+        auto res = insert(std::move(key), value_type());
         return res.value();
     }
     
-    ~avl_tree(){
+    ~avl_tree()
+    {
         clear();
     }
     
