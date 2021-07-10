@@ -140,7 +140,7 @@ void MediumGrainedTestInsertUndDelete(){
         }, i));
         threads.push_back(thread( [&] (int th) {
             for (int j = 0; j < elNum / 2; j++) {
-                auto iter = list.begin(); iter++;
+                auto iter = list.begin();
                 list.erase(iter);
             }
         }, i));

@@ -130,9 +130,8 @@ class List {
         }
         
         Iterator operator++ (int) {
-            Iterator tmp = *this;
             ++(*this);
-            return tmp;
+            return *this;
         }
         Iterator& operator-- () {
             Node* node = pointer;
@@ -153,9 +152,8 @@ class List {
         }
         
         Iterator operator-- (int) {
-            Iterator tmp = *this;
             --(*this);
-            return tmp;
+            return *this;
         }
         
         value_type operator*() {
@@ -229,7 +227,9 @@ public:
     
     Iterator begin () {
         shared_lock<shared_timed_mutex> lock (first -> mut);
-        return Iterator(first);
+        Node* ret = first -> _right;
+        Iterator it = Iterator(ret);
+        return it;
     }
     
     Iterator end () {
