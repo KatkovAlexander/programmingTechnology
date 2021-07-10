@@ -236,7 +236,7 @@ public:
         shared_lock<shared_timed_mutex> lock (first -> mut);
         return Iterator(last);
     }
-    /*поинтересоваться*/
+    
     Iterator insert(Iterator& it, value_type value) {
         auto previous = it.pointer;
         bool added = false;
