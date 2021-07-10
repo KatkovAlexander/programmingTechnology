@@ -1,40 +1,63 @@
-#pragma once
-
 #include <memory>
 #include <utility>
+#include <shared_mutex>
+
+using std::unique_lock;
+using std::shared_lock;
+using std::shared_timed_mutex;
 
 namespace smart_pointer {
-    
 class exception : std::exception {
     using base_class = std::exception;
     using base_class::base_class;
 };
-    
+
 template<typename T>
-class smartPointer{
+class SmartPointer {
+    
 public:
     using value_type = T;
-    explicit smartPointer(value_type* pointer = nullptr) {
+    
+    /*
+     Конструктор работает с указателем
+    */
+    explicit SmartPointer(value_type* pointer = nullptr) {
         if (pointer) {
-            core = new Core(pointer);
+            core = new Core;
             core->pointer = pointer;
             core->owners = 1;
         } else {
             core = nullptr;
         }
     }
-
-    smartPointer(const smartPointer& src) : core(src.core) {
-        if (core != nullptr && core->pointer != nullptr)
-            core->owners++;
+    
+    /*
+     конструктор копирования
+    */
+    SmartPointer(const SmartPointer& sp) {
+        shared_lock<shared_timed_mutex> lock (mut);{
+            shared_lock<shared_timed_mutex> lock (sp.mut);
+            {}
+        }
+        core = sp.core;
+        if (core) core->owners++;
     }
-
-    smartPointer(smartPointer&& sp) {
-        core = std::move(sp.core);
+    
+    /*
+     конструктор перемещения
+    */
+    SmartPointer(SmartPointer&& sp){
+        unique_lock<shared_timed_mutex> lock (mut);
+        core = sp.core;
         sp.core = nullptr;
     }
-
-    smartPointer& operator=(const smartPointer& sp) {
+    
+    
+    SmartPointer& operator=(const SmartPointer& sp) {
+        shared_lock<shared_timed_mutex> lock (mut);{
+            shared_lock<shared_timed_mutex> lock (sp.mut);
+            {}
+        }
         if (!core) {
             core = sp.core;
             if (sp.core) core->owners++;
@@ -44,14 +67,15 @@ public:
                 delete core;
                 core = nullptr;
             }
-
+            
             core = sp.core;
             if (sp.core) core->owners++;
         }
         return *this;
     }
-
-    smartPointer& operator=(smartPointer&& sp) {
+    
+    SmartPointer& operator=(SmartPointer&& sp) {
+        unique_lock<shared_timed_mutex> lock (mut);
         if (core) {
             core->owners--;
             if (!core->owners) {
@@ -59,12 +83,14 @@ public:
                 core = nullptr;
             }
         }
-
-        std::swap(core, sp.core);
+        
+        core = sp.core;
+        sp.core = nullptr;
         return *this;
     }
-
-    smartPointer& operator=(value_type* pointer) {
+    
+    SmartPointer& operator=(value_type* pointer) {
+        unique_lock<shared_timed_mutex> lock (mut);
         if (core) {
             core->owners--;
             if (!core->owners) {
@@ -72,70 +98,74 @@ public:
                 core = nullptr;
             }
         }
-
+        
         if (pointer) {
-            core = new Core(pointer);
+            core = new Core;
             core->pointer = pointer;
             core->owners = 1;
         }
         return *this;
-  }
-
-//    ~smartPointer() {
-//        if (core) {
-//            core->owners--;
-//            if (!core->owners) {
-//                delete core;
-//            }
-//        }
-//    }
-
+    }
+    
+    ~SmartPointer() {
+        unique_lock<shared_timed_mutex> lock (mut);
+        if (core != nullptr) {
+            core->owners--;
+            if (core->owners == 0) {
+                delete core;
+                core = nullptr;
+            }
+        }
+    }
+    
     value_type& operator*() {
+        shared_lock<shared_timed_mutex> lock (mut);
         if (!core) throw smart_pointer::exception();
         return *(core->pointer);
     }
-  
+    
     const value_type& operator*() const {
+        shared_lock<shared_timed_mutex> lock (mut);
         if (!core) throw smart_pointer::exception();
         return *(core->pointer);
     }
-
-    value_type* operator->() const { return core ? core->pointer : nullptr; }
-
-    value_type* get() const { return core ? core->pointer : nullptr; }
-
-    operator bool() const { return core != nullptr; }
-
-    template <typename U>
-    bool operator==(const smartPointer<U>& sp) const {
-        return (!core && sp.get() == nullptr) ||
-            (static_cast<void*>(get()) == static_cast<void*>(sp.get()));
+    
+    value_type* operator->() const {
+        shared_lock<shared_timed_mutex> lock (mut);
+        return core ? core->pointer : nullptr;
     }
-
+    
+    value_type* get() const {
+        shared_lock<shared_timed_mutex> lock (mut);
+        return core ? core->pointer : nullptr;
+    }
+    
+    operator bool() const {
+        shared_lock<shared_timed_mutex> lock (mut);
+        return core != nullptr;
+    }
+    
     template <typename U>
-    bool operator!=(const smartPointer<U>& sp) const {
+    bool operator==(const SmartPointer<U>& sp) const {
+        return (!core && sp.get() == nullptr) ||
+        (static_cast<void*>(get()) == static_cast<void*>(sp.get()));
+    }
+    
+    template <typename U>
+    bool operator!=(const SmartPointer<U>& sp) const {
         return !((!core && sp.get() == nullptr) ||
                  (static_cast<void*>(get()) == static_cast<void*>(sp.get())));
-  }
-
-  std::size_t count_owners() const { return core ? core->owners : 0; }
-
- private:
-  
+    }
+    
+    std::size_t count_owners() const { return core ? core->owners : 0; }
+    
+private:
     class Core {
     public:
-        explicit Core(value_type* ptr) : pointer(ptr){
-            if (this -> pointer != nullptr) {
-                owners++;
-            }
-        };
-        
-        std::size_t owners = 0;
-        value_type* pointer = nullptr;
-  };
-    
-  Core* core;
+        size_t owners = 0;
+        value_type* pointer;
+    };
+    Core* core;
+    mutable shared_timed_mutex mut;
 };
-
 }
-

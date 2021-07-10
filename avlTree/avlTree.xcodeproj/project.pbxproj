@@ -23,6 +23,16 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		84643FC02696FC5500F7628B /* 1Tests.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = 1Tests.h; sourceTree = "<group>"; };
+		84643FC12696FCC900F7628B /* 2Tests.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = 2Tests.h; sourceTree = "<group>"; };
+		84643FC6269701B300F7628B /* MediumGrainedList.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MediumGrainedList.h; sourceTree = "<group>"; };
+		84643FC72697021B00F7628B /* 3Tests.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = 3Tests.h; sourceTree = "<group>"; };
+		84643FC926981CEA00F7628B /* FinegrainingList.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FinegrainingList.h; sourceTree = "<group>"; };
+		84643FCA26981CF700F7628B /* 4Tests.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = 4Tests.h; sourceTree = "<group>"; };
+		84643FCD269981A400F7628B /* Spinlock-basedRWlock.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Spinlock-basedRWlock.h"; sourceTree = "<group>"; };
+		84643FCE269981BD00F7628B /* 5Tests.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = 5Tests.h; sourceTree = "<group>"; };
+		84643FCF269981D800F7628B /* RWSpinLock.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RWSpinLock.h; sourceTree = "<group>"; };
+		84856610268B13F4000D0964 /* avl_tree_1.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = avl_tree_1.h; sourceTree = "<group>"; };
 		8487384E25EF2E2A0080DE90 /* avlTree */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = avlTree; sourceTree = BUILT_PRODUCTS_DIR; };
 		8487385125EF2E2A0080DE90 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		8487385D25F0C2380080DE90 /* test_runner.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = test_runner.h; sourceTree = "<group>"; };
@@ -41,6 +51,59 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		84643FC22696FE5500F7628B /* 1Task */ = {
+			isa = PBXGroup;
+			children = (
+				84643FC02696FC5500F7628B /* 1Tests.h */,
+				84856610268B13F4000D0964 /* avl_tree_1.h */,
+			);
+			path = 1Task;
+			sourceTree = "<group>";
+		};
+		84643FC42696FE7400F7628B /* 2Task */ = {
+			isa = PBXGroup;
+			children = (
+				84B76E9F262AE73B007CA7DF /* avl_tree.h */,
+				84643FC12696FCC900F7628B /* 2Tests.h */,
+			);
+			path = 2Task;
+			sourceTree = "<group>";
+		};
+		84643FC52696FECF00F7628B /* 3Task */ = {
+			isa = PBXGroup;
+			children = (
+				84643FC6269701B300F7628B /* MediumGrainedList.h */,
+				84643FC72697021B00F7628B /* 3Tests.h */,
+			);
+			path = 3Task;
+			sourceTree = "<group>";
+		};
+		84643FC826981CBE00F7628B /* 4Task */ = {
+			isa = PBXGroup;
+			children = (
+				84643FC926981CEA00F7628B /* FinegrainingList.h */,
+				84643FCA26981CF700F7628B /* 4Tests.h */,
+			);
+			path = 4Task;
+			sourceTree = "<group>";
+		};
+		84643FCB26996E0200F7628B /* 5Task */ = {
+			isa = PBXGroup;
+			children = (
+				84643FCD269981A400F7628B /* Spinlock-basedRWlock.h */,
+				84643FCE269981BD00F7628B /* 5Tests.h */,
+				84643FCF269981D800F7628B /* RWSpinLock.h */,
+			);
+			path = 5Task;
+			sourceTree = "<group>";
+		};
+		84643FCC26996E1F00F7628B /* 6Task */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = 6Task;
+			sourceTree = "<group>";
+		};
 		8487384525EF2E2A0080DE90 = {
 			isa = PBXGroup;
 			children = (
@@ -60,10 +123,15 @@
 		8487385025EF2E2A0080DE90 /* avlTree */ = {
 			isa = PBXGroup;
 			children = (
-				8487385125EF2E2A0080DE90 /* main.cpp */,
 				8487385D25F0C2380080DE90 /* test_runner.h */,
-				84B76E9F262AE73B007CA7DF /* avl_tree.h */,
+				8487385125EF2E2A0080DE90 /* main.cpp */,
 				84B76EA0262AE74B007CA7DF /* smart_pointer.h */,
+				84643FC22696FE5500F7628B /* 1Task */,
+				84643FC42696FE7400F7628B /* 2Task */,
+				84643FC52696FECF00F7628B /* 3Task */,
+				84643FC826981CBE00F7628B /* 4Task */,
+				84643FCB26996E0200F7628B /* 5Task */,
+				84643FCC26996E1F00F7628B /* 6Task */,
 			);
 			path = avlTree;
 			sourceTree = "<group>";
@@ -94,7 +162,7 @@
 		8487384625EF2E2A0080DE90 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 1220;
+				LastUpgradeCheck = 1250;
 				TargetAttributes = {
 					8487384D25EF2E2A0080DE90 = {
 						CreatedOnToolsVersion = 12.2;
@@ -167,7 +235,7 @@
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_TESTABILITY = YES;
+				ENABLE_TESTABILITY = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
