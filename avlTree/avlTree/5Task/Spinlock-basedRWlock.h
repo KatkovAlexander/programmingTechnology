@@ -5,6 +5,8 @@
 #include <shared_mutex>
 #include <cassert>
 
+#include "RWSpinLock.h"
+
 using std::shared_timed_mutex;
 using std::unique_lock;
 using std::shared_lock;
@@ -39,8 +41,11 @@ class List
             node -> ref_count++;
         }
         
-        void release(Node* node) {
-            shared_lock<shared_timed_mutex> global_lock(list_pointer -> list_mut);
+        void release(Node* node, bool needLock = true) {
+            
+            if (needLock) {
+                list_pointer -> list_mut.reedLock();
+            }
             
             std::uint32_t old_ref_count = --node -> ref_count;
             
@@ -49,6 +54,9 @@ class List
                 list_pointer -> bin -> deleteNode(node);
             }
             
+            if (needLock) {
+                list_pointer -> list_mut.unlock();
+            }
         }
         
     };
@@ -118,11 +126,11 @@ class List
         void sleepPThread() {
             do {
                 // первая стадия
-                unique_lock<shared_timed_mutex> lock(list_pointer -> list_mut);
+                list_pointer -> list_mut.writeLock();
                 
                 binNode* binStart = this -> start;
                 
-                lock.unlock();
+                list_pointer -> list_mut.unlock();
                 
                 if (binStart != nullptr) {
                     
@@ -144,7 +152,7 @@ class List
                     
                     // вторая стадия
                     
-                    lock.lock();
+                    list_pointer -> list_mut.writeLock();
                     
                     binNode* newBinStart = this -> start;
                     
@@ -154,7 +162,7 @@ class List
                         this -> start = nullptr;
                     }
                     
-                    lock.unlock();
+                    list_pointer -> list_mut.unlock();
                     
                     left = newBinStart;
                     binNode* node = newBinStart;
@@ -256,13 +264,14 @@ public:
         
         Iterator& operator++() {
             Nod* node = pointer;
-            shared_lock<shared_timed_mutex> global_lock(list_pointer -> list_mut);
+            
+            list_pointer -> list_mut.reedLock();
             
             auto next_node = node -> next;
             
             value_type::acquire(&pointer, next_node);
             
-            global_lock.unlock();
+            list_pointer -> list_mut.unlock();
             
             node -> release(node);
             
@@ -276,13 +285,13 @@ public:
         
         Iterator& operator--() {
             auto node = pointer;
-            shared_lock<shared_timed_mutex> global_lock(list_pointer -> list_mut);
+            list_pointer -> list_mut.reedLock();
             
             auto prev_node = node -> _left;
             
             Nod::receive(&pointer, prev_node);
             
-            global_lock.unlock();
+            list_pointer -> list_mut.unlock();
             
             node -> release(node);
             
@@ -377,8 +386,7 @@ public:
         
         for (bool retry = true; retry; ) {
             if (iter.pointer -> deleted) {
-                // if node is deleted we will not insert el after it
-                // return end()
+                // if node is deleted we will not insert el after it return end()
                 return Iter(last, this);
             }
             
@@ -506,6 +514,6 @@ private:
     Nod* first;
     Nod* last;
     std::atomic<std::size_t> _size = {0};
-    std::shared_timed_mutex list_mut;
+    RWSpinLock list_mut;
     Bin<value_type>* bin;
 };
