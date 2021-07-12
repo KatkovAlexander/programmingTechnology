@@ -10,19 +10,18 @@
 using namespace std;
 
 void Insert() {
-    List<int> list(1);
-    ASSERT_EQUAL(list.size(), 1);
+    List<int> list;
     
-//    list.push_back(2);
-//    list.push_back(3);
-//    list.push_front(9);
-//    
-//    list.push_front(3);
-//    ASSERT_EQUAL(list.size(), 5);
+    list.push_back(2);
+    list.push_back(3);
+    list.push_front(9);
+
+    list.push_front(3);
+    ASSERT_EQUAL(list.size(), 4);
 }
 
 void Erase() {
-    List<int> list(1);
+    List<int> list;
     
     list.push_back(2);
     list.push_back(3);
@@ -37,7 +36,7 @@ void Erase() {
 }
 
 void Equal() {
-    List<int> list(1);
+    List<int> list;
     
     list.push_back(2);
     list.push_back(3);

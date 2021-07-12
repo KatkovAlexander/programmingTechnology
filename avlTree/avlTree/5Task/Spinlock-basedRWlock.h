@@ -27,7 +27,8 @@ class List
         List* list_pointer;
         std::atomic<std::uint32_t> ref_count = {0};
         std::atomic<std::uint32_t> bin = {0};
-        std::shared_timed_mutex mut;
+//        std::shared_timed_mutex mut;
+        RWSpinLock mut;
         bool deleted;
         
         Node(List* list) : _left(nullptr), _right(nullptr), list_pointer(list), deleted(false)
@@ -41,11 +42,10 @@ class List
             node -> ref_count++;
         }
         
-        void release(Node* node, bool needLock = true) {
+        void release(Node* node) {
             
-            if (needLock) {
-                list_pointer -> list_mut.reedLock();
-            }
+            list_pointer -> list_mut.rlock();
+            
             
             std::uint32_t old_ref_count = --node -> ref_count;
             
@@ -54,9 +54,8 @@ class List
                 list_pointer -> bin -> deleteNode(node);
             }
             
-            if (needLock) {
-                list_pointer -> list_mut.unlock();
-            }
+            list_pointer -> list_mut.unlock();
+            
         }
         
     };
@@ -105,13 +104,13 @@ class List
             if (right != nullptr)
                 right -> release(right);
             
-            free(node -> _data);
-            free(node);
+            delete node -> _data;
+            delete node;
         }
         
         void remove (binNode* left, binNode* node) {
             left -> _right = node -> _right;
-            free(node);
+            delete node;
         }
         
         void deleteNode(Nod* data) {
@@ -126,7 +125,7 @@ class List
         void sleepPThread() {
             do {
                 // первая стадия
-                list_pointer -> list_mut.writeLock();
+                list_pointer -> list_mut.wlock();
                 
                 binNode* binStart = this -> start;
                 
@@ -140,7 +139,7 @@ class List
                         binNode* tmp = node;
                         node = node -> _right;
                         
-                        if (tmp -> _data -> ref_count > 0 || tmp -> _data -> bin == 1) {
+                        if (tmp -> _data -> ref_count > 0 || tmp -> _data -> deleted) {
                             remove(left, tmp);
                         } else {
                             tmp -> _data -> bin = 1;
@@ -152,14 +151,14 @@ class List
                     
                     // вторая стадия
                     
-                    list_pointer -> list_mut.writeLock();
+                    list_pointer -> list_mut.wlock();
                     
                     binNode* newBinStart = this -> start;
                     
                     if (newBinStart == binStart) {
                         // если после первой стадии нет новых нодов, то start освобождается
                         
-                        this -> start = nullptr;
+                        start = nullptr;
                     }
                     
                     list_pointer -> list_mut.unlock();
@@ -285,7 +284,7 @@ public:
         
         Iterator& operator--() {
             auto node = pointer;
-            list_pointer -> list_mut.reedLock();
+            list_pointer -> list_mut.rlock();
             
             auto prev_node = node -> _left;
             
@@ -365,8 +364,8 @@ public:
     }
     
     Iter begin() {
-        shared_lock<shared_timed_mutex> lock(first -> mut);
-        
+//        shared_lock<shared_timed_mutex> lock(first -> mut);
+        first -> mut.rlock();
         Nod* ret = first -> _right;
         Iter it = Iter(ret, this);
         
@@ -390,14 +389,16 @@ public:
                 return Iter(last, this);
             }
             
-            unique_lock<shared_timed_mutex> lock_prev(prev->mut);
-            
-            Nod* next = prev-> _right;
-            unique_lock<shared_timed_mutex> lock_next(next->mut);
+//            unique_lock<shared_timed_mutex> lock_prev(prev->mut);
+            prev -> mut.wlock();
+            Nod* next = prev-> _right;;
+            next -> mut.wlock();
+//            unique_lock<shared_timed_mutex> lock_next(next->mut);
             
             if (prev == next -> _left) {
                 Nod* new_node = new Nod(data, this);
-                unique_lock<shared_timed_mutex> lock_new(new_node->mut);
+                new_node -> mut.wlock();
+//                unique_lock<shared_timed_mutex> lock_new(new_node->mut);
                 
                 Nod::receive(&new_node -> _left, prev);
                 Nod::receive(&new_node-> _right, next);
@@ -414,11 +415,11 @@ public:
                 // iter++
                 Nod::receive(&iter.pointer, new_node);
                 
-                lock_new.unlock();
+                new_node -> mut.unlock();
             }
             
-            lock_next.unlock();
-            lock_prev.unlock();
+            next -> mut.unlock();
+            prev -> mut.unlock();
         }
         
         prev -> release(prev);
@@ -429,8 +430,8 @@ public:
         Nod* node = iter.pointer;
         
         for (bool retry = true; retry; ) {
-            shared_lock<shared_timed_mutex> lock_node(node -> mut);
-            
+//            shared_lock<shared_timed_mutex> lock_node(node -> mut);
+            node -> mut.rlock();
             if (node == last || node == first) {
                 throw std::out_of_range("out of range");
             }
@@ -441,19 +442,21 @@ public:
             Nod* next = node-> _right;
             next->ref_count++;
             
-            lock_node.unlock();
+            node -> mut.unlock();
             
-            unique_lock<shared_timed_mutex> lock_prev(prev->mut);
-            lock_node.lock();
-            unique_lock<shared_timed_mutex> lock_next(next->mut);
+//            unique_lock<shared_timed_mutex> lock_prev(prev->mut);
+            prev -> mut.wlock();
+            node -> mut.rlock();
+            next -> mut.wlock();
+//            unique_lock<shared_timed_mutex> lock_next(next->mut);
             
             if (node-> deleted) {
                 // iter++
                 Nod::receive(&iter.pointer, next);
                 
-                lock_next.unlock();
-                lock_node.unlock();
-                lock_prev.unlock();
+                next -> mut.unlock();
+                node -> mut.unlock();
+                prev -> mut.unlock();
                 
                 prev->release(prev);
                 next->release(next);
@@ -480,9 +483,9 @@ public:
                 Nod::receive(&iter.pointer, next);
             }
             
-            lock_next.unlock();
-            lock_node.unlock();
-            lock_prev.unlock();
+            next -> mut.unlock();
+            node -> mut.unlock();
+            prev -> mut.unlock();
             
             prev -> release(prev);
             next -> release(next);

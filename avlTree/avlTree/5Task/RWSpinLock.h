@@ -7,16 +7,16 @@
 
 struct RWSpinLock {
     
-    void writeLock () {
+    void wlock () {
         
         while (true) {
             uint32_t oldVal = val;
             uint32_t newVal = oldVal | WBIT;
-            
+
             if (!(oldVal & WBIT) && val.compare_exchange_strong(oldVal, newVal)) {
                 break;
             }
-            
+
             std::this_thread::yield();
         }
         
@@ -29,7 +29,7 @@ struct RWSpinLock {
         }
     }
     
-    void reedLock () {
+    void rlock () {
         while (true)
         {
             uint32_t oldVal = val;
