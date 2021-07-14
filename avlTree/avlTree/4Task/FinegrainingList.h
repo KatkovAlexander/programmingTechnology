@@ -375,39 +375,39 @@ public:
             throw std::out_of_range("out of range");
         }
         
-        for (bool retry = true; retry; ) {
-            if (iter.pointer -> deleted) {
-                // if node is deleted we will not insert el after it
-                // return end()
-                return Iter(last, this);
-            }
+        
+        if (iter.pointer -> deleted) {
+            // if node is deleted we will not insert el after it
+            // return end()
+            return Iter(last, this);
+        }
+        
+        unique_lock<shared_timed_mutex> lock_prev(prev->mut);
+        
+        Nod* next = prev-> _right;
+        unique_lock<shared_timed_mutex> lock_next(next->mut);
+        
+        if (prev == next -> _left) {
+            Nod* new_node = new Nod(data, this);
+            unique_lock<shared_timed_mutex> lock_new(new_node->mut);
             
-            unique_lock<shared_timed_mutex> lock_prev(prev->mut);
+            Nod::receive(&new_node -> _left, prev);
+            Nod::receive(&new_node-> _right, next);
             
-            Nod* next = prev-> _right;
-            unique_lock<shared_timed_mutex> lock_next(next->mut);
+            Nod::receive(&prev-> _right, new_node);
+            Nod::receive(&next -> _left, new_node);
             
-            if (prev == next -> _left) {
-                Nod* new_node = new Nod(data, this);
-                unique_lock<shared_timed_mutex> lock_new(new_node->mut);
-                
-                Nod::receive(&new_node -> _left, prev);
-                Nod::receive(&new_node-> _right, next);
-                
-                Nod::receive(&prev-> _right, new_node);
-                Nod::receive(&next -> _left, new_node);
-                
-                prev->release(prev); // ref_count >= 3
-                next->release(next);
-                
-                _size++;
-                retry = false;
-                
-                // iter++
-                Nod::receive(&iter.pointer, new_node);
-                
-                lock_new.unlock();
-            }
+            prev->release(prev);
+            next->release(next);
+            
+            _size++;
+            
+            
+            // iter++
+            Nod::receive(&iter.pointer, new_node);
+            
+            lock_new.unlock();
+            
             
             lock_next.unlock();
             lock_prev.unlock();

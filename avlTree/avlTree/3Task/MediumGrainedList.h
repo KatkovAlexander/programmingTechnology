@@ -17,15 +17,18 @@ class List {
         value_type _value;
         Node* _left;
         Node* _right;
+        List* list_pointer;
         std::atomic<std::uint32_t> ref_count = {0};
         shared_timed_mutex mut;
         bool deleted;
         
-        Node(value_type value) : _value(value), _left(nullptr), _right(nullptr), deleted(false) {}
+        Node(List* list) : _left(nullptr), _right(nullptr), list_pointer(list), deleted(false)
+        {}
         
-        Node() : _left(nullptr), _right(nullptr), deleted(false) {}
+        Node(value_type data, List* list) : _value(data), _left(nullptr), _right(nullptr), list_pointer(list), deleted(false)
+        {}
         
-        static void deleteNode(Node* node)
+        void deleteNode(Node* node)
         {
             if (node -> _left != nullptr) {
                 release(node -> _left);
@@ -43,7 +46,8 @@ class List {
             node -> ref_count++;
         }
         
-        static void release(Node* node){
+        void release(Node* node){
+            unique_lock<shared_timed_mutex> lock (list_pointer -> list_mut);
             node -> ref_count--;
             
             if (node -> ref_count == 0) {
@@ -108,7 +112,7 @@ class List {
         
         ~Iterator() {
             unique_lock<shared_timed_mutex> lock(pointer->mut);
-            Node::release(pointer);
+            pointer -> release(pointer);
         }
         
         Iterator& operator++() {
@@ -116,15 +120,9 @@ class List {
             shared_lock<shared_timed_mutex> lock (node -> mut);
             auto next = node -> _right;
             Node::receive(&pointer, next);
-            
-            if (node -> ref_count == 1) {
-                lock.unlock();
-                unique_lock<shared_timed_mutex> lock(node->mut);
-                Node::release(node);
-            }
-            else {
-                Node::release(node);
-            }
+
+            lock.unlock();
+            Node::release(node);
             
             return *this;
         }
@@ -138,15 +136,8 @@ class List {
             shared_lock<shared_timed_mutex> lock (node -> mut);
             auto prev = node -> _left;
             Node::receive(&pointer, prev);
-            
-            if (node -> ref_count == 1) {
-                lock.unlock();
-                unique_lock<shared_timed_mutex> lock(node->mut);
-                Node::release(node);
-            }
-            else {
-                Node::release(node);
-            }
+            lock.unlock();
+            pointer -> release(node);
             
             return *this;
         }
@@ -181,7 +172,7 @@ class List {
     friend Iterator;
     
 public:
-    List() : first(new Node), last(new Node) {
+    List() : first(new Node(this)), last(new Node(this)) {
         first -> ref_count = 1;
         first -> _left = nullptr;
         first -> _right = nullptr;
@@ -196,7 +187,7 @@ public:
         Node::receive(&last->_left, first);
     }
     
-    List (value_type value) : first(new Node), last(new Node) {
+    List (value_type value) : first(new Node(this)), last(new Node(this)) {
         first -> ref_count = 1;
         first -> _left = nullptr;
         first -> _right = nullptr;
@@ -239,41 +230,38 @@ public:
     
     Iterator insert(Iterator& it, value_type value) {
         auto previous = it.pointer;
-        bool added = false;
         
         if (it.pointer == last) {
             throw std::out_of_range("out of range");
         }
         
-        while (!added) {
-            if (it.pointer -> deleted) {
-                return Iterator(last);
-            }
+        if (it.pointer -> deleted) {
+            return Iterator(last);
+        }
+        
+        unique_lock<shared_timed_mutex> lock1 (previous -> mut);
+        auto next = previous -> _right;
+        unique_lock<shared_timed_mutex> lock2 (next -> mut);
+        
+        if (next->_left == previous) {
+            Node* newNode = new Node(value, this);
+            unique_lock<shared_timed_mutex> lock(newNode -> mut);
             
-            unique_lock<shared_timed_mutex> lock1 (previous -> mut);
-            auto next = previous -> _right;
-            unique_lock<shared_timed_mutex> lock2 (next -> mut);
+            _size++;
             
-            if (next->_left == previous) {
-                Node* newNode = new Node(value);
-                unique_lock<shared_timed_mutex> lock(newNode -> mut);
-                
-                _size++;
-                
-                Node::receive(&previous -> _right, newNode);
-                Node::receive(&newNode -> _left, previous);
-                
-                Node::receive(&next -> _left, newNode);
-                Node::receive(&newNode -> _right, next);
-                
-                Node::release(previous);
-                Node::release(next);
-                
-                Node::receive(&it.pointer, newNode);
-                Node::release(previous);
-                
-                added = true;
-            }
+            Node::receive(&previous -> _right, newNode);
+            Node::receive(&newNode -> _left, previous);
+            
+            Node::receive(&next -> _left, newNode);
+            Node::receive(&newNode -> _right, next);
+            
+            previous -> release(previous);
+            next -> release(next);
+            
+            Node::receive(&it.pointer, newNode);
+            previous -> release(previous);
+            
+
         }
         
         return it;
@@ -304,10 +292,10 @@ public:
             
             if (node -> deleted) {
                 Node::receive(&it.pointer, next);
-                Node::release(node);
+                node -> release(node);
                 
-                Node::release(previous);
-                Node::release(next);
+                previous -> release(previous);
+                next -> release(next);
                 
                 return it;
             }
@@ -323,8 +311,8 @@ public:
                 Node::receive(&it.pointer, next);
             }
             
-            Node::release(previous);
-            Node::release(next);
+            previous -> release(previous);
+            next -> release(next);
         }
         
         return it;
@@ -352,4 +340,5 @@ private:
     Node* first;
     Node* last;
     std::atomic<std::uint32_t> _size = {0};
+    std::shared_timed_mutex list_mut;
 };

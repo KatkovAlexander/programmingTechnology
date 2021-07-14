@@ -132,7 +132,7 @@ void MediumGrainedTestInsertUndDelete(){
 
     auto startTime = chrono::high_resolution_clock::now();
     
-    for (int i = 0; i < thNum; i++) {
+    for (int i = 0; i < thNum / 2; i++) {
         threads.push_back(thread( [&] (int th) {
             for (int j = 0; j < elNum; j++) {
                 list.push_back(j*i);
@@ -153,7 +153,6 @@ void MediumGrainedTestInsertUndDelete(){
     auto endTime = chrono::high_resolution_clock::now();
     auto time = chrono::duration_cast<chrono::microseconds>(endTime - startTime);
     cout << (double)time.count() / 1000.0 << endl;
-    ASSERT_EQUAL(list.size() > elNum , true);
 }
 
 
