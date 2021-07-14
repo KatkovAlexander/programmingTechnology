@@ -2,7 +2,8 @@
 //#include "2Task/2Tests.h"
 //#include "3Task/3Tests.h"
 //#include "4Task/4Tests.h"
-#include "5Task/5Tests.h"
+//#include "5Task/5Tests.h"
+#include "3Task/3TestsTree.h"
 using namespace std;
 
 int main(){

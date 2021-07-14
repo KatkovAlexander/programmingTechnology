@@ -11,7 +11,7 @@ using std::shared_lock;
 template<typename value_type>
 class List {
     
-    typedef class Node
+    class Node
     {
     public:
         value_type _value;
@@ -55,7 +55,7 @@ class List {
             }
         }
         
-    } Node;
+    };
     
     
     typedef class Iterator
